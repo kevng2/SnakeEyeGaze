@@ -16,14 +16,78 @@ def get_blinking_ratio(eye_points, facial_landmarks):
     center_bottom = midpoint(facial_landmarks.part(eye_points[5]), facial_landmarks.part(eye_points[4]))
 
     # lines to draw across the eye
-    horizontal_line = cv2.line(frame, left_point, right_point, (0, 255, 0), 2)
-    vertical_line = cv2.line(frame, center_top, center_bottom, (0, 255, 0), 2)
+    # horizontal_line = cv2.line(frame, left_point, right_point, (0, 255, 0), 2)
+    # vertical_line = cv2.line(frame, center_top, center_bottom, (0, 255, 0), 2)
 
     horizontal_line_length = hypot(left_point[0] - right_point[0], left_point[1] - right_point[1])
     vertical_line_length = hypot(center_top[0] - center_bottom[0], center_top[1] - center_bottom[1])
 
     ratio = horizontal_line_length // vertical_line_length
     return ratio
+
+
+def division(n, d):
+    return n / d if d else 0
+
+
+def get_gaze_ratio(eye_points, facial_landmarks):
+    left_eye_region = np.array([(facial_landmarks.part(eye_points[0]).x, facial_landmarks.part(eye_points[0]).y),
+                                (facial_landmarks.part(eye_points[1]).x, facial_landmarks.part(eye_points[1]).y),
+                                (facial_landmarks.part(eye_points[2]).x, facial_landmarks.part(eye_points[2]).y),
+                                (facial_landmarks.part(eye_points[3]).x, facial_landmarks.part(eye_points[3]).y),
+                                (facial_landmarks.part(eye_points[4]).x, facial_landmarks.part(eye_points[4]).y),
+                                (facial_landmarks.part(eye_points[5]).x, facial_landmarks.part(eye_points[5]).y)
+                                ], np.int32)
+
+    height, width, _ = frame.shape
+    mask = np.zeros((height, width), np.uint8)
+
+    # fill the eye area with white
+    cv2.polylines(mask, [left_eye_region], True, 225, 2)
+    cv2.fillPoly(mask, [left_eye_region], 255)
+
+    eye = cv2.bitwise_and(gray, gray, mask=mask)
+
+    # draws circle around eye
+    # cv2.polylines(frame, [left_eye_region], True, (0, 0, 225), 2)
+
+    # smallest x value (left point on eye)
+    min_x = np.min(left_eye_region[:, 0])
+
+    # biggest x value (right point on eye)
+    max_x = np.max(left_eye_region[:, 0])
+
+    # smallest y value (bottom of eye)
+    min_y = np.min(left_eye_region[:, 1])
+
+    # biggest y value (top of eye)
+    max_y = np.max(left_eye_region[:, 1])
+
+    # get the eye area from the the bottom point to the top point and leftmost point to rightmost point
+    gray_eye = eye[min_y:max_y, min_x:max_x]
+
+    _, threshold_eye = cv2.threshold(gray_eye, 70, 255, cv2.THRESH_BINARY)
+    height, width = threshold_eye.shape
+    left_side_threshold = threshold_eye[0: height, 0: width // 2]
+    left_side_white = cv2.countNonZero(left_side_threshold)
+
+    bottom_side_threshold = threshold_eye[0: height // 2, 0: width]
+    bottom_side_white = cv2.countNonZero(bottom_side_threshold)
+
+    top_side_threshold = threshold_eye[height // 2: height, 0: width]
+    top_side_white = cv2.countNonZero(top_side_threshold)
+
+    right_side_threshold = threshold_eye[0: height, width // 2: width]
+    right_side_white = cv2.countNonZero(right_side_threshold)
+
+    ratio = division(left_side_white, right_side_white)
+    verticalRatio = division(top_side_white, bottom_side_white)
+
+    return ratio, verticalRatio
+
+
+def get_gaze_ration_vertical(eye_points, facial_landmarks):
+    pass
 
 
 # change number to 0 for default webcam on your machine
@@ -59,18 +123,29 @@ while True:
         if blinking_ratio > 5.0:
             cv2.putText(frame, "BLINKING", (50, 150), font, 7, (255, 0, 0))
 
-        # Gaze Detection
-        left_eye_region = np.array([(landmarks.part(36).x, landmarks.part(36).y),
-                                    (landmarks.part(37).x, landmarks.part(37).y),
-                                    (landmarks.part(38).x, landmarks.part(38).y),
-                                    (landmarks.part(39).x, landmarks.part(39).y),
-                                    (landmarks.part(40).x, landmarks.part(40).y),
-                                    (landmarks.part(41).x, landmarks.part(41).y)
-                                    ], np.int32)
+        gaze_ratio_left_eye, gaze_ratio_left_eye_vertical = get_gaze_ratio([36, 37, 38, 39, 40, 41], landmarks)
+        gaze_ratio_right_eye, gaze_ratio_right_eye_vertical = get_gaze_ratio([42, 43, 44, 45, 46, 47], landmarks)
 
-        # draws circle around eye
-        cv2.polylines(frame, [left_eye_region], True, (0, 0, 225), 2)
-        cv2.imshow("Frame", frame)
+        gaze_ratio = (gaze_ratio_right_eye + gaze_ratio_left_eye) / 2
+        gaze_ratio_vertical = (gaze_ratio_left_eye_vertical + gaze_ratio_right_eye_vertical) // 2
+
+        cv2.putText(frame, str(gaze_ratio_vertical), (100, 50), font, 2, (0, 0, 255), 3)
+
+        # gaze detection
+        if gaze_ratio < 1:
+            cv2.putText(frame, "RIGHT", (50, 100), font, 2, (0, 0, 255), 3)
+        elif 1 < gaze_ratio < 3:
+            # check vertical here
+            if gaze_ratio_vertical > 2:
+                cv2.putText(frame, "UP", (50, 100), font, 2, (0, 0, 255), 3)
+            else:
+                cv2.putText(frame, "DOWN", (50, 100), font, 2, (0, 0, 255), 3)
+
+            pass
+        else:
+            cv2.putText(frame, "LEFT", (50, 100), font, 2, (0, 0, 255), 3)
+
+    cv2.imshow("Frame", frame)
 
     key = cv2.waitKey(1)
     if key == 27:
