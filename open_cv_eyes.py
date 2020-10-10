@@ -70,6 +70,7 @@ while True:
 
         # draws circle around eye
         cv2.polylines(frame, [left_eye_region], True, (0, 0, 225), 2)
+        cv2.imshow("Frame", frame)
 
     key = cv2.waitKey(1)
     if key == 27:
