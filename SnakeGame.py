@@ -6,7 +6,7 @@ class Snake():
     def __init__(self):
         self.length = 1
         self.positions = [((screen_width/2), (screen_height/2))]
-        self.direction = random.choice([up, down, left, right])
+        self.direction = (0,0)
         self.color = (255, 0, 0)
         # Special thanks to YouTubers Mini - Cafetos and Knivens Beast for raising this issue!
         # Code adjustment courtesy of YouTuber Elija de Hoog
@@ -21,11 +21,19 @@ class Snake():
         else:
             self.direction = point
 
-    def move(self):
+    def move(self, surface):
         cur = self.get_head_position()
         x,y = self.direction
         new = (((cur[0]+(x*gridsize))%screen_width), (cur[1]+(y*gridsize))%screen_height)
         if len(self.positions) > 2 and new in self.positions[2:]:
+            self.reset()
+        elif self.positions[0][0] == 0.0 and x == -1:
+            self.reset()
+        elif self.positions[0][0] == 460.0 and x == 1:
+            self.reset()
+        elif self.positions[0][1] == 0.0 and y == -1:
+            self.reset()
+        elif self.positions[0][1] == 460.0 and y == 1:
             self.reset()
         else:
             self.positions.insert(0,new)
@@ -35,7 +43,7 @@ class Snake():
     def reset(self):
         self.length = 1
         self.positions = [((screen_width/2), (screen_height/2))]
-        self.direction = random.choice([up, down, left, right])
+        self.direction = (0,0)
         self.score = 0
 
     def draw(self,surface):
@@ -78,10 +86,10 @@ def drawGrid(surface):
         for x in range(0, int(grid_width)):
             if (x+y)%2 == 0:
                 r = pygame.Rect((x*gridsize, y*gridsize), (gridsize,gridsize))
-                pygame.draw.rect(surface,(105,105,105), r)
+                pygame.draw.rect(surface,(255,255,255), r)
             else:
                 rr = pygame.Rect((x*gridsize, y*gridsize), (gridsize,gridsize))
-                pygame.draw.rect(surface, (0,0,0), rr)
+                pygame.draw.rect(surface, (255,255,255), rr)
 
 screen_width = 480
 screen_height = 480
@@ -111,10 +119,10 @@ def main():
     myfont = pygame.font.SysFont("monospace",16)
 
     while (True):
-        clock.tick(10)
+        clock.tick(1)
         snake.handle_keys()
         drawGrid(surface)
-        snake.move()
+        snake.move(surface)
         if snake.get_head_position() == food.position:
             snake.length += 1
             snake.score += 1
