@@ -15,5 +15,6 @@ Demo Here: https://www.youtube.com/watch?v=bMpGKILR3dg&t=1s
   
 # What we learned
 - Eye and pupil detection using the opencv
+- Set up detection of eye movement and calculate which direction the eye is moving
 - Set up Snake game with Pygame
 - Set up conda environment for development
