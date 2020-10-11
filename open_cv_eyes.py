@@ -86,10 +86,6 @@ def get_gaze_ratio(eye_points, facial_landmarks):
     return ratio, verticalRatio
 
 
-def get_gaze_ration_vertical(eye_points, facial_landmarks):
-    pass
-
-
 if __name__ == '__main__':
 
     # change number to 0 for default webcam on your machine
