@@ -1,6 +1,10 @@
 import pygame
 import sys
+import open_cv_eyes
 import random
+import time
+from threading import Thread
+import os
 
 
 class Snake():
@@ -59,8 +63,9 @@ class Snake():
                 pygame.quit()
                 sys.exit()
             elif event.type == pygame.KEYDOWN:
+                if open_cv_eyes.direction == "DOWN":
+                    print("Oh yeah")
                 if event.key == pygame.K_UP:
-                    print("ok")
                     self.turn(up)
                 elif event.key == pygame.K_DOWN:
                     self.turn(down)
@@ -96,6 +101,10 @@ def drawGrid(surface):
                 pygame.draw.rect(surface, (255, 255, 255), rr)
 
 
+def exec_file():
+    os.system('pythonw open_cv_eyes.py')
+
+
 screen_width = 480
 screen_height = 480
 
@@ -111,7 +120,6 @@ right = (1, 0)
 
 def main():
     pygame.init()
-
     clock = pygame.time.Clock()
     screen = pygame.display.set_mode((screen_width, screen_height), 0, 32)
 
@@ -139,6 +147,7 @@ def main():
         text = myfont.render("Score {0}".format(snake.score), 1, (0, 0, 0))
         screen.blit(text, (5, 10))
         pygame.display.update()
+        time.sleep(1)
 
 
-main()
+Thread(target=main(), args=("2",)).start()

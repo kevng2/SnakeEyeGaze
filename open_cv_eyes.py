@@ -2,6 +2,100 @@ import cv2
 import numpy as np
 import dlib
 from math import hypot
+import pygame
+import sys
+import random
+
+
+class Snake():
+    def __init__(self):
+        self.length = 1
+        self.positions = [((screen_width / 2), (screen_height / 2))]
+        self.direction = (0, 0)
+        self.color = (255, 0, 0)
+        # Special thanks to YouTubers Mini - Cafetos and Knivens Beast for raising this issue!
+        # Code adjustment courtesy of YouTuber Elija de Hoog
+        self.score = 0
+
+    def get_head_position(self):
+        return self.positions[0]
+
+    def turn(self, point):
+        if self.length > 1 and (point[0] * -1, point[1] * -1) == self.direction:
+            return
+        else:
+            self.direction = point
+
+    def move(self, surface):
+        cur = self.get_head_position()
+        x, y = self.direction
+        new = (((cur[0] + (x * gridsize)) % screen_width), (cur[1] + (y * gridsize)) % screen_height)
+        if len(self.positions) > 2 and new in self.positions[2:]:
+            self.reset()
+        elif self.positions[0][0] == 0.0 and x == -1:
+            self.reset()
+        elif self.positions[0][0] == 460.0 and x == 1:
+            self.reset()
+        elif self.positions[0][1] == 0.0 and y == -1:
+            self.reset()
+        elif self.positions[0][1] == 460.0 and y == 1:
+            self.reset()
+        else:
+            self.positions.insert(0, new)
+            if len(self.positions) > self.length:
+                self.positions.pop()
+
+    def reset(self):
+        self.length = 1
+        self.positions = [((screen_width / 2), (screen_height / 2))]
+        self.direction = (0, 0)
+        self.score = 0
+
+    def draw(self, surface):
+        for p in self.positions:
+            r = pygame.Rect((int(p[0]), int(p[1])), (gridsize, gridsize))
+            pygame.draw.rect(surface, self.color, r)
+            pygame.draw.rect(surface, (0, 0, 0), r, 1)
+
+    def handle_keys(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if direction == "UP":
+                self.turn(up)
+            elif direction == "DOWN":
+                self.turn(down)
+            elif direction == "LEFT":
+                self.turn(left)
+            elif direction == "RIGHT":
+                self.turn(right)
+
+
+class Food():
+    def __init__(self):
+        self.position = (0, 0)
+        self.color = (223, 163, 49)
+        self.randomize_position()
+
+    def randomize_position(self):
+        self.position = (random.randint(0, grid_width - 1) * gridsize, random.randint(0, grid_height - 1) * gridsize)
+
+    def draw(self, surface):
+        r = pygame.Rect((self.position[0], self.position[1]), (gridsize, gridsize))
+        pygame.draw.rect(surface, self.color, r)
+        pygame.draw.rect(surface, (223, 163, 49), r, 1)
+
+
+def drawGrid(surface):
+    for y in range(0, int(grid_height)):
+        for x in range(0, int(grid_width)):
+            if (x + y) % 2 == 0:
+                r = pygame.Rect((x * gridsize, y * gridsize), (gridsize, gridsize))
+                pygame.draw.rect(surface, (255, 255, 255), r)
+            else:
+                rr = pygame.Rect((x * gridsize, y * gridsize), (gridsize, gridsize))
+                pygame.draw.rect(surface, (255, 255, 255), rr)
 
 
 def midpoint(p1, p2):
@@ -86,6 +180,30 @@ def get_gaze_ratio(eye_points, facial_landmarks):
     return ratio, verticalRatio
 
 
+screen_width = 480
+screen_height = 480
+
+gridsize = 20
+grid_width = screen_width / gridsize
+grid_height = screen_height / gridsize
+
+up = (0, -1)
+down = (0, 1)
+left = (-1, 0)
+right = (1, 0)
+pygame.init()
+clock = pygame.time.Clock()
+screen = pygame.display.set_mode((screen_width, screen_height), 0, 32)
+
+surface = pygame.Surface(screen.get_size())
+surface = surface.convert()
+drawGrid(surface)
+
+snake = Snake()
+food = Food()
+
+myfont = pygame.font.SysFont("monospace", 16)
+
 if __name__ == '__main__':
 
     # change number to 0 for default webcam on your machine
@@ -103,7 +221,23 @@ if __name__ == '__main__':
 
     font = cv2.FONT_HERSHEY_PLAIN
 
+    direction = "DOWN"
+
     while True:
+        clock.tick(1)
+        drawGrid(surface)
+        snake.move(surface)
+        if snake.get_head_position() == food.position:
+            snake.length += 1
+            snake.score += 1
+            food.randomize_position()
+        snake.draw(surface)
+        food.draw(surface)
+        screen.blit(surface, (0, 0))
+        text = myfont.render("Score {0}".format(snake.score), 1, (0, 0, 0))
+        screen.blit(text, (5, 10))
+        pygame.display.update()
+
         # get the frame data from the capture
         _, frame = cap.read()
 
@@ -132,18 +266,26 @@ if __name__ == '__main__':
             # gaze detection
             if gaze_ratio < 1:
                 cv2.putText(frame, "RIGHT", (50, 100), font, 2, (0, 0, 255), 3)
+                direction = "RIGHT"
+                snake.handle_keys()
+
             elif 1 < gaze_ratio < 3:
                 # check vertical here
                 if gaze_ratio_vertical > 2:
                     cv2.putText(frame, "UP", (50, 100), font, 2, (0, 0, 255), 3)
+                    direction = "UP"
+                    snake.handle_keys()
+
                 else:
                     cv2.putText(frame, "DOWN", (50, 100), font, 2, (0, 0, 255), 3)
-
-                pass
+                    direction = "DOWN"
+                    snake.handle_keys()
             else:
+                direction = "LEFT"
                 cv2.putText(frame, "LEFT", (50, 100), font, 2, (0, 0, 255), 3)
+                snake.handle_keys()
 
-        cv2.imshow("Frame", frame)
+        cv2.imshow("Pupil Recognition", frame)
 
         key = cv2.waitKey(1)
         if key == 27:
