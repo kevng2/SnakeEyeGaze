@@ -90,66 +90,68 @@ def get_gaze_ration_vertical(eye_points, facial_landmarks):
     pass
 
 
-# change number to 0 for default webcam on your machine
-cap = cv2.VideoCapture(1)
+if __name__ == '__main__':
 
-# set resolution to 640x480
-cap.set(3, 640)
-cap.set(4, 480)
+    # change number to 0 for default webcam on your machine
+    cap = cv2.VideoCapture(1)
 
-# face detector
-detector = dlib.get_frontal_face_detector()
+    # set resolution to 640x480
+    cap.set(3, 640)
+    cap.set(4, 480)
 
-# read file to get the face data
-predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
+    # face detector
+    detector = dlib.get_frontal_face_detector()
 
-font = cv2.FONT_HERSHEY_PLAIN
+    # read file to get the face data
+    predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
 
-while True:
-    # get the frame data from the capture
-    _, frame = cap.read()
+    font = cv2.FONT_HERSHEY_PLAIN
 
-    # used to improve performance
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    faces = detector(gray)
+    while True:
+        # get the frame data from the capture
+        _, frame = cap.read()
 
-    for face in faces:
-        landmarks = predictor(gray, face)
+        # used to improve performance
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        faces = detector(gray)
 
-        # Detect Blinking
-        left_eye_ratio = get_blinking_ratio([36, 37, 38, 39, 40, 41], landmarks)
-        right_eye_ratio = get_blinking_ratio([42, 43, 44, 45, 46, 47], landmarks)
-        blinking_ratio = (left_eye_ratio + right_eye_ratio) / 2
-        if blinking_ratio > 5.0:
-            cv2.putText(frame, "BLINKING", (50, 150), font, 7, (255, 0, 0))
+        for face in faces:
+            landmarks = predictor(gray, face)
 
-        gaze_ratio_left_eye, gaze_ratio_left_eye_vertical = get_gaze_ratio([36, 37, 38, 39, 40, 41], landmarks)
-        gaze_ratio_right_eye, gaze_ratio_right_eye_vertical = get_gaze_ratio([42, 43, 44, 45, 46, 47], landmarks)
+            # Detect Blinking
+            left_eye_ratio = get_blinking_ratio([36, 37, 38, 39, 40, 41], landmarks)
+            right_eye_ratio = get_blinking_ratio([42, 43, 44, 45, 46, 47], landmarks)
+            blinking_ratio = (left_eye_ratio + right_eye_ratio) / 2
+            if blinking_ratio > 5.0:
+                cv2.putText(frame, "BLINKING", (50, 150), font, 7, (255, 0, 0))
 
-        gaze_ratio = (gaze_ratio_right_eye + gaze_ratio_left_eye) / 2
-        gaze_ratio_vertical = (gaze_ratio_left_eye_vertical + gaze_ratio_right_eye_vertical) // 2
+            gaze_ratio_left_eye, gaze_ratio_left_eye_vertical = get_gaze_ratio([36, 37, 38, 39, 40, 41], landmarks)
+            gaze_ratio_right_eye, gaze_ratio_right_eye_vertical = get_gaze_ratio([42, 43, 44, 45, 46, 47], landmarks)
 
-        cv2.putText(frame, str(gaze_ratio_vertical), (100, 50), font, 2, (0, 0, 255), 3)
+            gaze_ratio = (gaze_ratio_right_eye + gaze_ratio_left_eye) / 2
+            gaze_ratio_vertical = (gaze_ratio_left_eye_vertical + gaze_ratio_right_eye_vertical) // 2
 
-        # gaze detection
-        if gaze_ratio < 1:
-            cv2.putText(frame, "RIGHT", (50, 100), font, 2, (0, 0, 255), 3)
-        elif 1 < gaze_ratio < 3:
-            # check vertical here
-            if gaze_ratio_vertical > 2:
-                cv2.putText(frame, "UP", (50, 100), font, 2, (0, 0, 255), 3)
+            cv2.putText(frame, str(gaze_ratio_vertical), (100, 50), font, 2, (0, 0, 255), 3)
+
+            # gaze detection
+            if gaze_ratio < 1:
+                cv2.putText(frame, "RIGHT", (50, 100), font, 2, (0, 0, 255), 3)
+            elif 1 < gaze_ratio < 3:
+                # check vertical here
+                if gaze_ratio_vertical > 2:
+                    cv2.putText(frame, "UP", (50, 100), font, 2, (0, 0, 255), 3)
+                else:
+                    cv2.putText(frame, "DOWN", (50, 100), font, 2, (0, 0, 255), 3)
+
+                pass
             else:
-                cv2.putText(frame, "DOWN", (50, 100), font, 2, (0, 0, 255), 3)
+                cv2.putText(frame, "LEFT", (50, 100), font, 2, (0, 0, 255), 3)
 
-            pass
-        else:
-            cv2.putText(frame, "LEFT", (50, 100), font, 2, (0, 0, 255), 3)
+        cv2.imshow("Frame", frame)
 
-    cv2.imshow("Frame", frame)
+        key = cv2.waitKey(1)
+        if key == 27:
+            break
 
-    key = cv2.waitKey(1)
-    if key == 27:
-        break
-
-cap.release()
-cv2.destroyAllWindows()
+    cap.release()
+    cv2.destroyAllWindows()
